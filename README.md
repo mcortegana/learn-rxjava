@@ -141,7 +141,7 @@ import io.reactivex.Observable;
 
 public class ObservableCreate {
     public static void main(String[] args) {
-        Observable<String> observable = Observable.create(emitter -> 		 {
+        Observable<String> observable = Observable.create(emitter -> {
             emitter.onNext("Alpha");
             emitter.onNext("Beta");
             emitter.onNext("Gamma");
@@ -150,7 +150,7 @@ public class ObservableCreate {
             emitter.onComplete();
         });
 
-        observable.subscribe(item -> System.out.println(item));
+        observable.subscribe(item -> System.out.println(String.format("RECIBIDO: %s", item)));
     }
 }
 ```
@@ -188,7 +188,7 @@ public class OnError {
 
         observable.map(String::length)
                 .filter(size -> size >= 5)
-                .subscribe(System.out::println, 		   										Throwable::printStackTrace);
+                .subscribe(System.out::println, Throwable::printStackTrace);
     }
 }
 ```
@@ -206,7 +206,7 @@ import io.reactivex.Observable;
 
 public class ObservableJust {
     public static void main(String[] args) {
-        Observable<Integer> observable = Observable.just(1, 2, 3, 4, 												5, 6, 7, 8, 9, 10);
+        Observable<Integer> observable = Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
         observable.filter(n -> n >= 5)
                 .subscribe(System.out::println);
@@ -228,8 +228,8 @@ import java.util.List;
 
 public class ObservableFromIterable {
     public static void main(String[] args) {
-        List<String> nombres = Arrays.asList("Miguel", "Juan", 								"Alex", "Elizabeth", "Zulema", "Veronica");
-        Observable<String> observable = 													Observable.fromIterable(nombres);
+        List<String> nombres = Arrays.asList("Miguel", "Juan", "Alex", "Elizabeth", "Zulema", "Veronica");
+        Observable<String> observable = Observable.fromIterable(nombres);
 
         observable.filter(x -> x.startsWith("E"))
                 .subscribe(System.out::println);
