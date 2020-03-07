@@ -108,3 +108,132 @@ public class Events {
 
 En el código arriba descrito hemos creado un *Observable* que dispara un evento cada segundo que entrega un valor *Long* en cada intervalo especificado (Cada segundo).
 
+## El ***Observable***
+
+Ya vimos la forma básica de como opera un *Observable* ahora veremos como opera un *Observable* a través de sus métodos ***onNext()***, ***onComplete()*** y ***onError()***. 
+
+
+
+### **onNext()**
+
+Envía cada ítem uno a la vez desde la fuente *Observable* hasta el *Observer*.
+
+### ***onComplete()***
+
+Informa de la culminación de un evento al *Observer*, indicando que no se realizarán más llamadas *onNext()*.
+
+### ***onError()***
+
+Comunica un error en el flujo de datos al *Observer*, donde es el quien generalmente define cómo manejarlo. A menos que se use un operador retry () para interceptar el error, el flujo de datos desde el *Observable* generalmente termina y no se producen más emisiones de datos.
+
+
+
+Hay distintas maneras de crear un *Observable*, definiremos las más practicas y usadas de ellas.
+
+
+
+### **Usando Observable.create()**
+
+Este método nos permite crear un *Observable* proporcionando una expresión lambda que reciber un "*Observable* *emitter*". Podemos hacer uso del método *onNext()* del *Observable emitter* para enviar los datos emitidos (uno a la vez) al flujo de datos, el método *onComplete()* para indicar la finalización y que no se emitirán más datos. Estas llamadas al método *onNext()* enviarán los datos hacia el *Observer* donde se imprimirá en consola cada elemento recibido.
+
+```java
+import io.reactivex.Observable;
+
+public class ObservableCreate {
+    public static void main(String[] args) {
+        Observable<String> observable = Observable.create(emitter -> 		 {
+            emitter.onNext("Alpha");
+            emitter.onNext("Beta");
+            emitter.onNext("Gamma");
+            emitter.onNext("Delta");
+            emitter.onNext("Epsilon");
+            emitter.onComplete();
+        });
+
+        observable.subscribe(item -> System.out.println(item));
+    }
+}
+```
+
+La salida en consola es:
+
+```bash
+Alpha
+Beta
+Gamma
+Delta
+Epsilon
+
+Process finished with exit code 0
+```
+
+Si ocurriera un error dentro de nuestro bloque *create()* podemos emitirlo usando el método *onError()*. De esta forma el error será enviado al flujo de datos y manipulado por el *Observer*.
+
+```java
+import io.reactivex.Observable;
+
+public class OnError {
+    public static void main(String[] args) {
+        Observable<String> observable = Observable.create(emitter -> {
+            try {
+                emitter.onNext("Alpha");
+                emitter.onNext("Beta");
+                emitter.onNext("Gamma");
+                emitter.onNext("Delta");
+                emitter.onNext("Epsilon");
+            } catch (Throwable e) {
+                emitter.onError(e);
+            }
+        });
+
+        observable.map(String::length)
+                .filter(size -> size >= 5)
+                .subscribe(System.out::println, 		   										Throwable::printStackTrace);
+    }
+}
+```
+
+Como apreciamos también podemos hacer uso de uno o más operadores para filtrar la data.
+
+
+
+## Usando **Observable.just()**
+
+Con el método ***just()*** podemos enviar hasta 10 elementos que queramos emitir. Esto invocará el método *onNext()* por cada elemento y luego invocará al método *onComplete()* una vez todos los elementos hayan sido emitidos.
+
+```java
+import io.reactivex.Observable;
+
+public class ObservableJust {
+    public static void main(String[] args) {
+        Observable<Integer> observable = Observable.just(1, 2, 3, 4, 												5, 6, 7, 8, 9, 10);
+
+        observable.filter(n -> n >= 5)
+                .subscribe(System.out::println);
+    }
+}
+```
+
+
+
+## Usando **Observable.fromIterable()**
+
+Este método nos permite crear un *Observable* a partir de un tipo *Iterable* se comporta igual que el método *just()* invocando al método *onNext()* por cada elemento y al método *onComplete()* una vez que todos los elementos fueron emitidos.
+
+```java
+import io.reactivex.Observable;
+
+import java.util.Arrays;
+import java.util.List;
+
+public class ObservableFromIterable {
+    public static void main(String[] args) {
+        List<String> nombres = Arrays.asList("Miguel", "Juan", 								"Alex", "Elizabeth", "Zulema", "Veronica");
+        Observable<String> observable = 													Observable.fromIterable(nombres);
+
+        observable.filter(x -> x.startsWith("E"))
+                .subscribe(System.out::println);
+    }
+}
+```
+
