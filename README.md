@@ -4,7 +4,7 @@ La programación reactiva es mucho más que una nueva tecnología o una especifi
 
 La idea fundamental de **ReactiveX** es que *"Los Eventos son datos y los datos son Eventos*".
 
-
+# Capítulo 1
 
 ## Rápida introducción a RxJava
 
@@ -107,6 +107,8 @@ public class Events {
 ```
 
 En el código arriba descrito hemos creado un *Observable* que dispara un evento cada segundo que entrega un valor *Long* en cada intervalo especificado (Cada segundo).
+
+# Capítulo 2
 
 ## El ***Observable***
 
@@ -235,5 +237,161 @@ public class ObservableFromIterable {
                 .subscribe(System.out::println);
     }
 }
+```
+
+
+
+## La interfaz ***Observer***
+
+El tipo *Observer* es una interfaz abstracta implementada en RxJava para comunicar los eventos *onNext()*, *onComplete()* y *onError()* que también son métodos definidos en la interfaz *Observer*.
+
+```java
+    package io.reactivex;
+
+    import io.reactivex.disposables.Disposable;
+
+    public interface Observer<T> {
+      void onSubscribe(Disposable d);
+      void onNext(T value);
+      void onError(Throwable e);
+      void onComplete();
+   }
+```
+
+Profundizaremos en el método *onSubscribe()* más adelante, por ahora nos centraremos en los otros 3 métodos.
+
+ Los *Observer*s y *Observables* son algo relativos. Dentro de un mismo contexto un *Observable* es donde inicia el flujo y comienza la emisión de datos.
+
+Por otro lado, cada *Observable* retornado por un operador es internamente un *Observer* que recibe, transforma y emite los datos al siguiente *Observer*. Este no sabe si el siguiente *Observer* es otro operador o el *Observer* final del todo el flujo. Cuando hablamos de *Observers* a menudo nos referimos al *Observer* final que consume el flujo iniciado por el *Observable*. Pero cada operador como el *map()* y el *filter()* implementan la interfaz *Observer* internamente.
+
+### Implementación y Suscripción de un ***Observer***
+
+Cuando llamamos al método *subscribe()* de un *Observable* un *Observer* es usado para consumir los 3 eventos (*onNext()*, *onComplete()* y *onError()*). En lugar de especificar cada metodo como una expresión lambda como hemos venido haciendo. Podemos implementar un *Observer* y pasar una instancia de este al método *subscribe()*.
+
+```java
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
+
+public class Example01 {
+    public static void main(String[] args) {
+        Observable<String> source = Observable.just("Alpha", "Beta", "Gamma", "Delta");
+
+        /*Creamos una instancia de Observer*/
+        Observer<String> observer = new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable disposable) {
+                /*nothing to do for the moment*/
+            }
+
+            @Override
+            public void onNext(String s) {
+                System.out.println(s);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                throwable.printStackTrace();
+            }
+
+            @Override
+            public void onComplete() {
+                System.out.println("Finalizado!");
+            }
+        };
+
+        source.filter(s -> s.contains("t"))
+                .subscribe(observer); /*pasamos la instancia de nuestro observer para consumir los datos*/
+    }
+}
+```
+
+```bash
+Beta
+Delta
+Finalizado!
+
+Process finished with exit code 0
+```
+
+### **Abreviando Observers con expresiones lambdas**
+
+Implementar un *Observer* puede ser muy complicado y engorroso. Afortunadamente el método *subscribe()* tiene una sobrecarga que acepta expresiones lambdas como argumentos. Probablemente esto sea lo que usemos en la mayoría de casos, podemos especificar 3 parámetros lambda separados por comas en el siguiente orden: el *onNext()*, *onError()* y finalmente el *onComplete()*. Para el ejemplo anterior podemos usar las siguientes expresiones lambdas.
+
+```java
+    Consumer<Integer> onNext = i ->  System.out.println("RECEIVED: "          + i);
+    
+	Consumer<Throwable> onError = Throwable::printStackTrace;
+	
+    Action onComplete = () -> System.out.println("Done!");
+```
+
+Podemos pasar estas expresiones lambdas como argumentos del método *subscribe()*.
+
+```java
+import io.reactivex.Observable;
+import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
+
+public class Example02 {
+    public static void main(String[] args) {
+        Observable<String> observable = Observable.just("Alpha", "Beta", "Delta", "Gamma");
+
+        Consumer<String> onNext = System.out::println;
+        Consumer<Throwable> onError = Throwable::printStackTrace;
+        Action onComplete = () -> System.out.println("Finalizado!");
+
+        observable.filter(s -> s.contains("l"))
+                .subscribe(onNext, onError, onComplete);
+    }
+}
+```
+
+O pasar las expresiones lambda directamente como argumentos del método *subscribe()*
+
+```java
+    import io.reactivex.Observable;
+
+    public class Launcher {
+
+      public static void main(String[] args) {
+
+        Observable<String> source =
+          Observable.just("Alpha", "Beta", "Gamma", "Delta",
+          "Epsilon");
+        
+
+        source.map(String::length).filter(i -> i >= 5)
+          .subscribe(
+            /*onNext()*/
+            i -> System.out.println("RECEIVED: " + i),
+            /*onError()*/
+          Throwable::printStackTrace,
+            /*onComplete()*/
+		() ->  System.out.println("Done!"));
+      }
+   }
+```
+
+Podemos implementar un *Observer* omitiendo el método *onComplete()*
+
+```java
+source.map(String::length).filter(i -> i >= 5)
+          .subscribe(
+            /*onNext()*/
+            i -> System.out.println("RECEIVED: " + i),
+            /*onError()*/
+          Throwable::printStackTrace,
+      }
+```
+
+De igual forma podemos implementar un *Observer* solo con el método *onNext()* y omitiendo el *onError()* y *onComplete()*.
+
+```java
+source.map(String::length).filter(i -> i >= 5)
+          .subscribe(
+            /*onNext()*/
+            i -> System.out.println("RECEIVED: " + i)
+      }
 ```
 
