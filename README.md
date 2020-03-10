@@ -395,3 +395,51 @@ source.map(String::length).filter(i -> i >= 5)
       }
 ```
 
+### **Observables Fríos VS Observables Calientes**
+
+La relación entre un *Observable* y un *Observer* puede variar dependiendo de la forma en que se ha implementado el *Observable*. Esta diferencia de implementaciones esta dada por los *Cold Observables* y los *Hot Observables*, que definen como los *Observables* se comportan cuando hay muchos *Observers*.
+
+### **Cold Observables** (Observables Fríos)
+
+Los Observables "fríos" son aquellos que no transmiten valores hasta que haya una suscripción activa, ya que la información es producida dentro del Observable y por tanto solo emiten valores en el momento en que se establece una nueva subscripción. Los Observables "fríos" replican toda el stream de datos a cada *Observer*, asegurándose que reciban todos los datos. La mayoría de *Observables* orientados a datos son "fríos" y estos incluyen a los métodos que crean *Observables* que vimos previamente "Observable.just()" y "Observable.fromIterable()".
+
+En el siguiente bloque de código tenemos 2 *Observers* que están suscritos a un *Observable*. El *Observable* primero emitirá todos los datos al primer *Observer*, este una ves recibidos todos los datos invocará al evento *onComplete()*. Es ahora cuando el *Observable* emitirá nuevamente todo el stream de datos pero esta vez al segundo *Observer*  y este al finalizar también invocará al evento *onComplete*. Este es el comportamiento típico de un ***Cold Observable***.
+
+```java
+import java.util.Arrays;
+import java.util.List;
+
+public class ColdObservable {
+    public static void main(String[] args) {
+        List<String> stringList = Arrays.asList("Alpha", "Beta", "Delta", "Gamma");
+        Observable<String> observable = Observable.fromIterable(stringList);
+
+//        Primer Observer
+        observable.subscribe(s -> System.out.println("Observer 1: "+s));
+
+//        Segundo Observer
+        observable.subscribe(s -> System.out.println("Observer 2: "+s));
+
+    }
+}
+```
+
+```bash
+Observer 1: Alpha
+Observer 1: Beta
+Observer 1: Delta
+Observer 1: Gamma
+Observer 2: Alpha
+Observer 2: Beta
+Observer 2: Delta
+Observer 2: Gamma
+
+Process finished with exit code 0
+```
+
+### **Hot Observables (Observables Calientes)**
+
+Un *Observable* "Caliente" emite el mismo stream a todos los *Observers* al mismo tiempo. Si un *Observer* se suscribe a un *Observable "Caliente"* este recibe parte del stream y si luego viene otro *Observer* este no recibirá la parte del stream ya emitido por el *Observable*, es decir consumirá el stream a partir del momento es que se suscribe.
+
+Los *Observables Calientes* se usan a menudo para representar eventos en lugar de un conjunto de datos. Los eventos también pueden contener datos, pero hay que tener en cuenta que es un componente sensible al tiempo y que los *Observers* que se suscriban tarde pueden perder los datos que se emitieron previamente.
+
