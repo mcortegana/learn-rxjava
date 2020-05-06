@@ -436,7 +436,7 @@ Noten que el valor inicial declarado es 12 el cual se incrementará 10 veces lue
 
 Como hemos visto, los *Observables* trabajan emitiendo datos. Estas emisiones son entregadas secuencialmente desde la fuente *Observable* hacia el *Observer*. Pero estas emisiones pueden diferir en un lapso de tiempo dependiendo de cuando la fuente *Observable* las entrega.
 
-Veamos un ejemplo de un *Observable* basado en tiempo usando *Observable.interval()*. Este emite valores long consecutivos (empezando por 0) según un intervalo de tiempo especificado. En el ejemplo instanciaremos un Observable<Long> que emite un valor cada segundo.
+Veamos un ejemplo de un *Observable* basado en un temporizador usando *Observable.interval()*. Este emite valores long consecutivos (empezando por 0) según un intervalo de tiempo especificado. En el ejemplo instanciaremos un Observable<Long> que emite un valor cada segundo.
 
 ```java
 package com.learn.rxjava.observables;
