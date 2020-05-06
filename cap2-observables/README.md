@@ -1,113 +1,3 @@
-# Programación Reactiva
-
-La programación reactiva es mucho más que una nueva tecnología o una especificación, podria decirse que es una nueva forma o mentalidad de como resolver problemas. La razón por la que es tan efectiva y revolucionaria es porque no estructura todo como una serie de estados, sino como algo que esta en constante cambio. Al ser capaz de capturar la complejidad y la naturaleza dinámica de las cosas, en lugar de representarlas como estados, abre nuevas y poderosas posibilidades de como representar las cosas con código.
-
-La idea fundamental de **ReactiveX** es que *"Los Eventos son datos y los datos son Eventos*".
-
-# Capítulo 1
-
-## Rápida introducción a RxJava
-
-En RxJava el tipo base con el que trabajaremos será el ***Observable***. Esencialmente un **Observable** envía ítems de un tipo determinado **T** a través de una serie de operadores hasta que llegan a un ***Observer*** que consumirá estos ítems.
-
-Por ejemplo creemos una clase Launcher.java con el siguiente código:
-
-```java
-import io.reactivex.Observable;
-public class Launcher {
-      public static void main(String[] args) {
-        Observable<String> myStrings =
-          Observable.just("Alpha", "Beta", "Gamma", "Delta", 
-"Epsilon");
-      }
-}
-```
-
-En el método *main()* tenemos un **Observable<Strings>** que entregará 5 objetos de tipo *String*. Un **Observable** puede entregar datos o eventos desde cualquier fuente virtual, puede ser una consulta a base de datos, datos en tiempo real de tweets de Twitter, etc. En este caso usamos el método **Observable.just()** para entregar una lista fija de 5 strings.
-
-Si ejecutamos el método *main()* no ocurrirá nada ya que solo hemos declarado un ***Observable<String>***. Para hacer que el *Observable* entregue los 5 strings (llamaremos a esto una **emisión** de datos), necesitamos un ***Observer*** que se suscriba a nuestro *Observable* y reciba los items. Crearemos y conectaremos rápidamente un *Observer* y mediante una expresión *Lambda* especificaremos que es lo que hará con cada ítem recibido.
-
-```java
-import io.reactivex.Observable;
-public class Launcher {
-    public static void main(String[] args) {
-        /*Observable*/
-        Observable<String> strings = Observable.just("Alpha", "Beta", 								"Gamma", "Delta", "Epsilon");
-		
-        /*Observer*/
-        strings.subscribe(s -> System.out.println(s));
-    }
-}
-```
-
-Nuestro *Observable* ha entregado cada objeto de tipo *String* (uno a la vez) a nuestro *Observer* y mediante una expresión *Lambda* hemos impreso en consola cada ítem recibido en el *Observer*.
-
-```bash
-"C:\Program Files\Java\jdk1.8.0_211\bin\java.exe"...
-Alpha
-Beta
-Gamma
-Delta
-Epsilon
-
-Process finished with exit code 0
-```
-
-
-
-> Una expresión ***Lambda*** es esencialmente una mini función que permite pasar instrucciones sobre que acción se realizará con cada ítem entrante. Todo lo que este a la izquierda de la **->** son parámetros y todo lo que esta a la derecha son acciones.
-
-Podemos usar más de un operador entre el *Observable* y el *Observer* para transformar cada ítem entregado o manipularlos de alguna otra forma. Cada operador retorna un nuevo *Observable* derivado del anterior pero reflejando el cambio realizado en el actual operador. por ejemplo usaremos el operador *map()* para convertir cada *String* en su propia longitud (*lenght()*).
-
-```java
-/*Observer con un operador intermedio que transforma los datos entregados por el Observable*/
-        strings.map(s -> s.length()).subscribe(x -> 				   									System.out.println(x));
-```
-
-En consola nos mostrara el resultado
-
-```bash
-Alpha
-Beta
-Gamma
-Delta
-Epsilon
-5
-4
-5
-5
-7
-
-Process finished with exit code 0
-```
-
-Como mencionamos anteriormente un *Observable* no solo puede entregar datos sino también *Eventos*. Por ejemplo:
-
-```java
-import io.reactivex.Observable;
-import java.util.concurrent.TimeUnit;
-
-public class Events {
-    public static void main(String[] args) {
-        Observable<Long> ejecutarCadaSegundo = Observable.interval(1, 									TimeUnit.SECONDS);
-        
-        ejecutarCadaSegundo.subscribe(x -> System.out.println(x));
-        
-        sleep(5000);
-    }
-
-    private static void sleep(long milisegundos) {
-        try {
-            Thread.sleep(milisegundos);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
-```
-
-En el código arriba descrito hemos creado un *Observable* que dispara un evento cada segundo que entrega un valor *Long* en cada intervalo especificado (Cada segundo).
-
 # Capítulo 2
 
 ## El ***Observable***
@@ -442,4 +332,149 @@ Process finished with exit code 0
 Un *Observable* "Caliente" emite el mismo stream a todos los *Observers* al mismo tiempo. Si un *Observer* se suscribe a un *Observable "Caliente"* este recibe parte del stream y si luego viene otro *Observer* este no recibirá la parte del stream ya emitido por el *Observable*, es decir consumirá el stream a partir del momento es que se suscribe.
 
 Los *Observables Calientes* se usan a menudo para representar eventos en lugar de un conjunto de datos. Los eventos también pueden contener datos, pero hay que tener en cuenta que es un componente sensible al tiempo y que los *Observers* que se suscriban tarde pueden perder los datos que se emitieron previamente.
+
+### ConnectableObservables
+
+Toma cualquier *Observable* así sea un *Cold Observable* y lo convierte en un *Hot Observable* de manera que todas las emisiones son enviadas a todos los *Observers* a la vez. Para hacer esta conversión simplemente llamamos al método **publish()** en cualquier *Observable* y este instanciará un *ConnectableObservable*. Para que la emisión de los datos inicie es necesario llamar al método **connect()**
+
+Ejemplo:
+
+```java
+package com.learn.rxjava.observables;
+
+import io.reactivex.Observable;
+import io.reactivex.observables.ConnectableObservable;
+
+public class ConnectableObservableExample {
+
+    public static void main(String[] args) {
+        ConnectableObservable<String> source = Observable.just("Alpha", "Beta", "Gamma", "Delta", "Epsilon")
+                .publish();
+
+//        Observer 1
+        source.subscribe(s -> System.out.print("Observer 1: " + s + "\n"));
+
+//        Observer 2
+        source.map(String::toUpperCase)
+                .subscribe(s -> System.out.println("Observer 2: " + s + "\n"));
+
+//        Conectar y recibir el flujo del stream
+        source.connect();
+    }
+
+}
+```
+
+El resultado en consola será el siguiente:
+
+```bash
+Observer 1: Alpha
+Observer 2: ALPHA
+
+Observer 1: Beta
+Observer 2: BETA
+
+Observer 1: Gamma
+Observer 2: GAMMA
+
+Observer 1: Delta
+Observer 2: DELTA
+
+Observer 1: Epsilon
+Observer 2: EPSILON
+
+
+Process finished with exit code 0
+```
+
+Notamos como el *Observer 1* recibe la cadena string tal cual es emitida y el *Observer 2* recibe la misma cadena pero la transforma a mayúsculas y ambas son imprimidas en consola de forma intercalada. Ambas suscripciones son configuradas previamente y luego el método *connect()* es llamado para *"disparar"* las emisiones.
+
+Cada emisión va a cada *Observer* simultáneamente, es decir el Observer 1 recibe "Alpha" y el Observer 2 recibe "ALPHA", luego "beta" y "BETA" y así de forma consecutiva. Entonces usando *ConnectableObservable* forzamos a que cada emisión vaya a todos los *Observers* simultáneamente esto también es conocido como **Multicasting**.
+
+## Otros Observables
+
+### Observable.range()
+
+Emite un rango consecutivo de valores enteros. *Observable.range()* emite cada número desde un valor inicial y se incrementa de uno en uno hasta que se llega al límite del contador especificado. Estos valores de valor inicial y contador límite son pasados como parámetros en la llamada al método **range()**
+
+```java
+package com.learn.rxjava.observables;
+
+import io.reactivex.Observable;
+
+public class ObservableRange {
+
+    public static void main(String[] args) {
+        Observable<Integer> source = Observable.range(12, 10);
+
+        source.subscribe(i -> System.out.println("RECIBIDO: "+i));
+    }
+
+}
+```
+
+La salida en consola es la siguiente:
+
+```bash
+RECIBIDO: 12
+RECIBIDO: 13
+RECIBIDO: 14
+RECIBIDO: 15
+RECIBIDO: 16
+RECIBIDO: 17
+RECIBIDO: 18
+RECIBIDO: 19
+RECIBIDO: 20
+RECIBIDO: 21
+
+Process finished with exit code 0
+```
+
+Noten que el valor inicial declarado es 12 el cual se incrementará 10 veces luego de esto se llamará al método *onComplete()*.
+
+### Observable.interval()
+
+Como hemos visto, los *Observables* trabajan emitiendo datos. Estas emisiones son entregadas secuencialmente desde la fuente *Observable* hacia el *Observer*. Pero estas emisiones pueden diferir en un lapso de tiempo dependiendo de cuando la fuente *Observable* las entrega.
+
+Veamos un ejemplo de un *Observable* basado en tiempo usando *Observable.interval()*. Este emite valores long consecutivos (empezando por 0) según un intervalo de tiempo especificado. En el ejemplo instanciaremos un Observable<Long> que emite un valor cada segundo.
+
+```java
+package com.learn.rxjava.observables;
+
+import io.reactivex.Observable;
+
+import java.util.concurrent.TimeUnit;
+
+public class ObservableInterval {
+
+    public static void main(String[] args) {
+
+        Observable<Long> source = Observable.interval(1, TimeUnit.SECONDS);
+
+        source.subscribe(s -> System.out.println(s + " Mississipi"));
+        sleep(5000);
+    }
+
+    public static void sleep(int milisegundos) {
+        try {
+            Thread.sleep(milisegundos);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+```
+
+La salida en consola mostrará lo siguiente:
+
+```bash
+0 Mississipi
+1 Mississipi
+2 Mississipi
+3 Mississipi
+4 Mississipi
+
+Process finished with exit code 0
+```
 
