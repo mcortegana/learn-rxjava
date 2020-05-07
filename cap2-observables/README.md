@@ -478,3 +478,216 @@ La salida en consola mostrará lo siguiente:
 Process finished with exit code 0
 ```
 
+*Observable.interval()* emitirá valores Long infinitamente según el intervalo de tiempo especificado (en este caso 1 segundo para fines prácticos). Sin embargo ya que opera sobre un temporizador *"timer"*, necesita operar en un hilo separado. Los temas de *Concurrencia y Paralelismo* se cubrirán más adelante. Por ahora, notemos que el método *main()* da inicio al *Observable* pero no espera que este finalice; ya que el *Observable* esta emitiendo en un hilo distinto. Por lo tanto para evitar que el método *main()* termine y salga de la aplicación antes que el *Observable* pueda emitir sus valores usamos el método *sleep()* para mantener la aplicación viva 5 segundas. Esto da el tiempo suficiente al *Observable()* para emitir algunos valores antes que la aplicación termine.
+
+Entonces un *Observable.interval()* retorna un *Hot Observable* o un *Cold Observable*? Ya que es orientado a eventos y es infinito podemos decir que es de tipo *Hot Observable*. Pero que pasaría si en el ejemplo anterior agregamos un segundo *Observer*, esperamos 5 segundos y agregamos otro. ¿Qué es lo que pasaría?
+
+```java
+package com.learn.rxjava.observables;
+
+import io.reactivex.Observable;
+
+import java.util.concurrent.TimeUnit;
+
+public class ObservableInterval {
+
+    public static void main(String[] args) {
+
+        Observable<Long> source = Observable.interval(1, TimeUnit.SECONDS);
+
+//        Observer 1
+        source.subscribe(s -> System.out.println("Observer 1: " + s));
+        sleep(5000);
+
+//        Observer 2
+        source.subscribe(s -> System.out.println("Observer 2: " + s));
+        sleep(5000);
+    }
+
+    public static void sleep(int milisegundos) {
+        try {
+            Thread.sleep(milisegundos);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+```
+
+La salida en consola muestra lo siguiente:
+
+```bash
+Observer 1: 0
+Observer 1: 1
+Observer 1: 2
+Observer 1: 3
+Observer 1: 4
+Observer 1: 5
+Observer 2: 0
+Observer 2: 1
+Observer 1: 6
+Observer 1: 7
+Observer 2: 2
+Observer 1: 8
+Observer 2: 3
+Observer 2: 4
+Observer 1: 9
+
+Process finished with exit code 0
+```
+
+Veamos que ha pasado luego del primer lapso de 5 segundos, cuando el Observer 2 entra en acción. Notamos que cada uno tiene su propio temporizador *timer* y empieza en 0, estos dos *Observers* reciben su propio flujo emitido por el *Observable* y empieza en 0. Entonces este es actualmente un *Cold Observable*. Para poner todos los *Observers* en un solo *timer* y consumiendo la misma emisión de valores tendremos que usar un *ConnectableObservable* para forzar estas emisiones a convertirse en *Hot Observable*.
+
+```java
+package com.learn.rxjava.observables;
+
+import io.reactivex.Observable;
+import io.reactivex.observables.ConnectableObservable;
+
+import java.util.concurrent.TimeUnit;
+
+public class ObservableInterval {
+
+    public static void main(String[] args) {
+
+        ConnectableObservable<Long> source = Observable.interval(1, TimeUnit.SECONDS).publish();
+
+//        Observer 1
+        source.subscribe(s -> System.out.println("Observer 1: " + s));
+        source.connect();
+        sleep(5000);
+
+//        Observer 2
+        source.subscribe(s -> System.out.println("Observer 2: " + s));
+        sleep(5000);
+    }
+
+    public static void sleep(int milisegundos) {
+        try {
+            Thread.sleep(milisegundos);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+```
+
+La salida en consola es la siguiente:
+
+```bash
+Observer 1: 0
+Observer 1: 1
+Observer 1: 2
+Observer 1: 3
+Observer 1: 4
+Observer 1: 5
+Observer 2: 5
+Observer 1: 6
+Observer 2: 6
+Observer 1: 7
+Observer 2: 7
+Observer 1: 8
+Observer 2: 8
+Observer 1: 9
+Observer 2: 9
+
+Process finished with exit code 0
+```
+
+Ahora ya que el Observer 2 se unió 5 segundos tarde ha perdido las emisiones anteriores y esta sincronizado con el Observer 1 desde el segundo 6, recibiendo ambos Observers las mismas emisiones.
+
+### Observable.future()
+
+Ya hemos visto que los *Observables* de RxJava son mucho mas robustos y expresivos que los *Futures*. pero si tenemos una librería existente y que además devuelva *Futures* podemos fácilmente volverlos *Observables* usando *Observable.future()*.
+
+```java
+package com.learn.rxjava.observables;
+
+import io.reactivex.Observable;
+
+import java.util.concurrent.Future;
+
+public class ObservableFuture {
+
+    public static void main(String[] args) {
+//        Obtener el future
+        Future<String> futureValue = ...;
+
+//        Convertir a Observable y consumirlo
+        Observable.fromFuture(futureValue)
+                .map(String::toUpperCase)
+                .subscribe(System.out::println);
+    }
+
+}
+```
+
+### Observable.empty()
+
+A pesar de que parezca que no tiene utilidad, en ocasiones nos resulta de gran ayuda si necesitamos crear un *Observable*  que no emita ningún valor y llame al método *onComplete()*
+
+```java
+package com.learn.rxjava.observables;
+
+import io.reactivex.Observable;
+
+public class ObservableEmpty {
+
+    public static void main(String[] args) {
+        Observable<String> empty = Observable.empty();
+
+        empty.subscribe(System.out::println, Throwable::printStackTrace, () -> System.out.println("Finalizado!"));
+    }
+
+}
+```
+
+En consola se muestra:
+
+```bash
+Finalizado!
+
+Process finished with exit code 0
+```
+
+Un Observable vacío o empty Observable es esencialmente el concepto nulo de RxJava. Es la ausencia de un valor o valores.
+
+### Observable.never()
+
+Un primo cercano de un Observable.empty(), la única diferencia es que en un *Observable.never()* nunca llama al método *onComplete()*, siempre espera por las emisiones pero nunca entrega nada.
+
+```java
+package com.learn.rxjava.observables;
+
+import io.reactivex.Observable;
+
+public class ObservableNever {
+
+    public static void main(String[] args) {
+        Observable<String> never = Observable.never();
+
+        never.subscribe(System.out::println, Throwable::printStackTrace, () -> System.out.println("Finalizado!"));
+        sleep(5000);
+    }
+
+    public static void sleep(int milisegundos) {
+        try {
+            Thread.sleep(milisegundos);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+```
+
+En consola no se mostrará nada ya que nunca se llama al método *onComplete()*
+
+```bash
+
+Process finished with exit code 0
+```
+
+Este Observable es principalmente usado para testing y nunca se usa en producción. Usamos el método sleep() igual que en un Observable.interval() ya que el método main() tampoco espera a que finalice.
